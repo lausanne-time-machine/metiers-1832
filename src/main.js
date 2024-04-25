@@ -67,7 +67,7 @@ const cadastreVectorTileLayer = new VectorTileLayer({
 
 const almanachLayer = new VectorLayer({
   source: new VectorSource({
-    url: 'http://cdhvm0003.xaas.epfl.ch/web/geo/lausanne/1832/almanach/1832_almanach.geojson',
+    url: 'https://geo-timemachine.epfl.ch/geoserver/TimeMachine/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=TimeMachine%3A1832_almanach&outputFormat=application%2Fjson',
     format: new GeoJSON(),
   }),
   style: new Style({
@@ -393,12 +393,12 @@ function createAlmanachItem(properties) {
       ],
       value: properties.metier,
     },
-    Categ: {
+    categ: {
       label: [
         { fr: 'Catégorie' },
         { en: 'Category' }
       ],
-      value: properties.Categ,
+      value: properties.categ,
     },
     // MacroClass: {
     //   label: [
@@ -407,19 +407,19 @@ function createAlmanachItem(properties) {
     //   ],
     //   value: properties.MacroClass,
     // },
-    nomRue: {
+    nomrue: {
       label: [
         { fr: 'Nom de rue' },
         { en: 'Street Name' }
       ],
-      value: properties.nomRue,
+      value: properties.nomrue,
     },
-    numRue: {
+    numrue: {
       label: [
         { fr: 'Numéro de rue' },
         { en: 'Street Number' }
       ],
-      value: properties.numRue,
+      value: properties.numrue,
     },
     field_1: {
       label: [
@@ -442,12 +442,12 @@ function createAlmanachItem(properties) {
       ],
       value: properties.wkt,
     },
-    Point_info: {
+    point_info: {
       label: [
         { fr: 'Information sur le point' },
         { en: 'Point Information' }
       ],
-      value: properties.Point_info,
+      value: properties.point_info,
     }
   }
 };
