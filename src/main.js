@@ -88,7 +88,7 @@ const almanachLayer = new VectorLayer({
 // Create the view with the initial center and zoom level
 const view = new View({
   zoom: 2,
-  center: [0, 0]
+  center: [732766.5159535911, 5861623.374137599]
 });
 
 // Create the map
