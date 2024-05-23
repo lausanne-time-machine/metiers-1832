@@ -15,6 +15,7 @@ import VectorSource from 'ol/source/Vector';
 import GeoJSON from 'ol/format/GeoJSON';
 import Circle from 'ol/style/Circle';
 import Stroke from 'ol/style/Stroke';
+import { defaults as defaultControls } from 'ol/control.js';
 
 // Define the extent [minX, minY, maxX, maxY]
 const extent = [732766.5159535911, 5861623.374137599, 748257.9790256999, 5877491.021729927];
@@ -22,16 +23,22 @@ const extent = [732766.5159535911, 5861623.374137599, 748257.9790256999, 5877491
 // Define the layers
 const baseLayer = new TileLayer({
   source: new OSM(),
-  className: 'ol-osm'
+  className: 'ol-osm',
+  transition: 0,
+  zIndex: 0,
 });
 
 const cadastreImageLayer = new TileLayer({
-  extent: extent,
   source: new XYZ({
-    url: 'http://cdhvm0003.xaas.epfl.ch/web/geo/lausanne/1832/cadastre/{z}/{x}/{y}.png',
+    url: 'https://geo-timemachine.epfl.ch/geoserver/www/tilesets/lausanne-1832/{z}/{x}/{y}.png',
     minZoom: 12,
     maxZoom: 20,
+    transition: 0,
+    attributions: '© <a href="https://archives-deux-sevres-vienne.fr/ark:/28387/vtac12d0108cfa39369" target="_blank">Archives dépertementales des Deux-Sèvres et Vienne</a>'
   }),
+  extent: extent,
+  preload: Infinity,
+  zIndex: 1,
 });
 
 const cadastreWmsSource = new TileWMS({
@@ -40,12 +47,14 @@ const cadastreWmsSource = new TileWMS({
   serverType: 'geoserver',
   minZoom: 12,
   maxZoom: 20,
+  transition: 0,
 });
 
 const cadastreWmsLayer = new TileLayer({
   extent: extent,
   source: cadastreWmsSource,
   opacity: 0.5,
+  zIndex: 2,
 });
 
 const cadastreVectorTileLayer = new VectorTileLayer({
@@ -53,7 +62,8 @@ const cadastreVectorTileLayer = new VectorTileLayer({
     tilePixelRatio: 1, // oversampling when > 1
     tileGrid: createXYZ({ minZoom: 12, maxZoom: 20 }),
     format: new MVT(),
-    url: 'https://geo-timemachine.epfl.ch/geoserver/TimeMachine/gwc/service/tms/1.0.0/TimeMachine:lausanne_cadastre_berney_v7_7@EPSG:900913@pbf/{z}/{x}/{-y}.pbf'
+    url: 'https://geo-timemachine.epfl.ch/geoserver/TimeMachine/gwc/service/tms/1.0.0/TimeMachine:lausanne_cadastre_berney_v7_7@EPSG:900913@pbf/{z}/{x}/{-y}.pbf',
+    transition: 0,
   }),
   style: function () {
     return new Style({
@@ -62,13 +72,16 @@ const cadastreVectorTileLayer = new VectorTileLayer({
         color: 'rgba(0, 0, 0, 0)'
       })
     });
-  }
+  },
+  extent: extent,
+  zIndex: 3,
 });
 
 const almanachLayer = new VectorLayer({
   source: new VectorSource({
     url: 'https://geo-timemachine.epfl.ch/geoserver/TimeMachine/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=TimeMachine%3A1832_almanach&outputFormat=application%2Fjson',
     format: new GeoJSON(),
+    transition: 0,
   }),
   style: new Style({
     image: new Circle({
@@ -81,7 +94,9 @@ const almanachLayer = new VectorLayer({
         width: 1
       })
     })
-  })
+  }),
+  extent: extent,
+  zIndex: 5,
 });
 
 
@@ -94,8 +109,14 @@ const view = new View({
 // Create the map
 const map = new Map({
   target: 'map',
-  layers: [baseLayer, cadastreImageLayer, cadastreWmsLayer, cadastreVectorTileLayer, almanachLayer],
-  view: view
+  layers: [
+    baseLayer,
+    cadastreWmsLayer,
+    cadastreVectorTileLayer,
+    almanachLayer
+  ],
+  view: view,
+  controls: defaultControls({ attribution: false })
 });
 
 // Checkbox event listeners
@@ -119,7 +140,7 @@ document.getElementById('almanachLayer').addEventListener('change', function () 
 const opacitySlider = document.getElementById('cadastreOpacitySlider');
 
 // Add an event listener to the slider
-opacitySlider.addEventListener('input', function() {
+opacitySlider.addEventListener('input', function () {
   // Get the value of the slider
   const opacityValue = parseFloat(opacitySlider.value);
 
@@ -138,6 +159,8 @@ map.once('postrender', function () {
     padding: [50, 50, 50, 50], // Optional: padding around the edges
     duration: 0 // Optional: animation duration in milliseconds
   });
+  map.addLayer(cadastreImageLayer);
+
   // Initial legend
   const resolution = map.getView().getResolution();
   updateLegend(resolution);
