@@ -101,13 +101,13 @@ const almanachLayer = new VectorLayer({
 });
 
 // Add error handlers
-almanachLayer.getSource().on('error', function(error) {
+almanachLayer.getSource().on('error', function (error) {
   console.error('Error loading almanach data:', error);
   // Disable the layer on error
   almanachLayer.setVisible(false);
 });
 
-cadastreWmsSource.on('error', function(error) {
+cadastreWmsSource.on('error', function (error) {
   console.error('Error loading WMS data:', error);
   // Disable the layer on error
   cadastreWmsLayer.setVisible(false);
@@ -181,78 +181,129 @@ map.once('postrender', function () {
   updateLegend(resolution);
 });
 
-
 const updateLegend = function (resolution) {
   const graphicUrl = cadastreWmsSource.getLegendUrl(resolution);
   const img = document.getElementById('legend');
   img.src = graphicUrl;
 };
 
-map.on('click', showFeatureInfo);
+// Add throttling to click handler
+let lastClickTime = 0;
+const CLICK_DELAY = 200; // ms
+map.on('click', function (event) {
+  const now = Date.now();
+  if (now - lastClickTime < CLICK_DELAY) return;
+  lastClickTime = now;
 
-function showFeatureInfo(event) {
-  const features = map.getFeaturesAtPixel(event.pixel);
-  const featureInfo = document.getElementById('featureInfo');
-  const featureInfoContent = document.getElementById('featureInfoContent');
-  featureInfoContent.innerHTML = '';
-  if (features.length === 0) {
-    featureInfoContent.innerText = '';
-    featureInfo.style.opacity = 0;
-    setTimeout(() => featureInfo.classList.add('hidden'), 100);
+  // Get the feature at the pixel
+  const feature = getFeatureAtPixel(event);
+  if (!feature) {
+    hideFeatureInfo();
     return;
   }
 
-  // // Highlight the feature
-  // features[0].setStyle(new Style({
-  //   stroke: new Stroke({
-  //     color: 'black',
-  //     width: 2
-  //   }),
-  //   fill: new Fill({
-  //     color: 'rgba(255, 255, 255, 0.5)'
-  //   })
-  // }));
+  // Highlight the feature
+  highlightFeature(feature);
 
-  const properties = features[0].getProperties();
+  // Show the feature info
+  showFeatureInfo(feature);
+});
 
-  if (properties.hasOwnProperty('area')) {
-    const cadastre_item_model = createCadastreItem(properties);
-    const tableElement = document.createElement('table');
-    for (const key in cadastre_item_model) {
-      const rowElement = document.createElement('tr');
-      const labelElement = document.createElement('td');
-      const valueElement = document.createElement('td');
-      if (cadastre_item_model[key].value !== '') {
-        labelElement.textContent = cadastre_item_model[key].label[0].fr + ':';
-        valueElement.textContent = cadastre_item_model[key].value;
+function getFeatureAtPixel(event) {
+  const features = map.getFeaturesAtPixel(event.pixel);
+  return features[0] ?? null;
+}
+
+function hideFeatureInfo() {
+  clearFeatureInfo();
+  featureInfo.style.opacity = 0;
+  setTimeout(() => featureInfo.classList.add('hidden'), 100);
+}
+
+function clearFeatureInfo() {
+  const featureInfoContent = document.getElementById('featureInfoContent');
+  featureInfoContent.innerText = '';
+}
+
+function showFeatureInfo(feature) {
+  try {
+    const properties = feature.getProperties();
+    const featureInfo = document.getElementById('featureInfo');
+
+    if (properties.hasOwnProperty('area')) {
+      const cadastre_item_model = createCadastreItem(properties);
+      const tableElement = document.createElement('table');
+      for (const key in cadastre_item_model) {
+        const rowElement = document.createElement('tr');
+        const labelElement = document.createElement('td');
+        const valueElement = document.createElement('td');
+        if (cadastre_item_model[key].value !== '') {
+          labelElement.textContent = cadastre_item_model[key].label[0].fr + ':';
+          valueElement.textContent = cadastre_item_model[key].value;
+          rowElement.appendChild(labelElement);
+          rowElement.appendChild(valueElement);
+          tableElement.appendChild(rowElement);
+        }
+      }
+      clearFeatureInfo();
+      featureInfoContent.appendChild(tableElement);
+    } else if (properties.hasOwnProperty('field_1')) {
+      const almanach_item_model = createAlmanachItem(properties);
+      const tableElement = document.createElement('table');
+      for (const key in almanach_item_model) {
+        const rowElement = document.createElement('tr');
+        const labelElement = document.createElement('td');
+        const valueElement = document.createElement('td');
+        labelElement.textContent = almanach_item_model[key].label[0].fr + ':';
+        valueElement.textContent = almanach_item_model[key].value;
         rowElement.appendChild(labelElement);
         rowElement.appendChild(valueElement);
         tableElement.appendChild(rowElement);
       }
+      clearFeatureInfo();
+      featureInfoContent.appendChild(tableElement);
     }
-    featureInfoContent.appendChild(tableElement);
-  } else if (properties.hasOwnProperty('field_1')) {
-    const almanach_item_model = createAlmanachItem(properties);
-    const tableElement = document.createElement('table');
-    for (const key in almanach_item_model) {
-      const rowElement = document.createElement('tr');
-      const labelElement = document.createElement('td');
-      const valueElement = document.createElement('td');
-      labelElement.textContent = almanach_item_model[key].label[0].fr + ':';
-      valueElement.textContent = almanach_item_model[key].value;
-      rowElement.appendChild(labelElement);
-      rowElement.appendChild(valueElement);
-      tableElement.appendChild(rowElement);
-    }
-    featureInfoContent.appendChild(tableElement);
+    featureInfo.style.opacity = 1;
+    featureInfo.classList.remove('hidden');
+    // Re-bind the close button event listener
+    document.getElementById('closeFeatureInfo').addEventListener('click', function () {
+      featureInfo.style.opacity = 0;
+      setTimeout(() => featureInfo.classList.add('hidden'), 100);
+    });
+  } catch (error) {
+    console.error('Error showing feature info:', error);
   }
-  featureInfo.style.opacity = 1;
-  featureInfo.classList.remove('hidden');
-  // Re-bind the close button event listener
-  document.getElementById('closeFeatureInfo').addEventListener('click', function () {
-    featureInfo.style.opacity = 0;
-    setTimeout(() => featureInfo.classList.add('hidden'), 100);
+}
+
+function highlightFeature(feature) {
+  let highlightLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'highlight');
+  if (highlightLayer) {
+    map.removeLayer(highlightLayer);
+  }
+
+  // Create vector layer for highlighting
+  const highlightSource = new VectorSource({
+    features: [feature]
   });
+  highlightLayer = new VectorLayer({
+    source: highlightSource,
+    style: new Style({
+      stroke: new Stroke({
+        color: '#FFFFFF',
+        width: 3
+      }),
+      fill: new Fill({
+        color: 'rgba(255,255,255,0.1)'
+      })
+    }),
+    name: 'highlight'
+  });
+
+  // Set the z-index of the highlight layer to 100 to make sure it is displayed on top
+  highlightLayer.setZIndex(100);
+
+  // Add highlight layer
+  map.addLayer(highlightLayer);
 }
 
 document.getElementById('closeFeatureInfo').addEventListener('click', function () {
@@ -484,3 +535,21 @@ function createAlmanachItem(properties) {
     }
   }
 };
+
+// Add loading indicator management
+let loadingCount = 0;
+const loadingElement = document.getElementById('loading');
+
+function updateLoading(delta) {
+  loadingCount += delta;
+  if (loadingCount > 0) {
+    loadingElement.style.display = 'flex';
+  } else {
+    loadingElement.style.display = 'none';
+  }
+}
+
+// Add to source loading events
+almanachLayer.getSource().on('tileloadstart', () => updateLoading(1));
+almanachLayer.getSource().on('tileloadend', () => updateLoading(-1));
+almanachLayer.getSource().on('tileloaderror', () => updateLoading(-1));
