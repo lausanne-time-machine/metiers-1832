@@ -116,7 +116,9 @@ cadastreWmsSource.on('error', function(error) {
 // Create the view with the initial center and zoom level
 const view = new View({
   zoom: 2,
-  center: [732766.5159535911, 5861623.374137599]
+  center: [732766.5159535911, 5861623.374137599],
+  maxZoom: 20,
+  minZoom: 12
 });
 
 // Create the map
