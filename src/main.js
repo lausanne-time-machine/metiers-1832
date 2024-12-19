@@ -181,11 +181,6 @@ map.once('postrender', function () {
   updateLegend(resolution);
 });
 
-// // Update the legend when the resolution changes
-// map.getView().on('change:resolution', function (event) {
-//   const resolution = event.target.getResolution();
-//   updateLegend(resolution);
-// });
 
 const updateLegend = function (resolution) {
   const graphicUrl = cadastreWmsSource.getLegendUrl(resolution);
