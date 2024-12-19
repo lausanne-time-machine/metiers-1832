@@ -64,6 +64,7 @@ const cadastreVectorTileLayer = new VectorTileLayer({
     format: new MVT(),
     url: 'https://geo-timemachine.epfl.ch/geoserver/TimeMachine/gwc/service/tms/1.0.0/TimeMachine:lausanne_cadastre_berney_v7_7@EPSG:900913@pbf/{z}/{x}/{-y}.pbf',
     transition: 0,
+    timeout: 10000, // 10 second timeout
   }),
   style: function () {
     return new Style({
