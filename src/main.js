@@ -100,6 +100,18 @@ const almanachLayer = new VectorLayer({
   zIndex: 5,
 });
 
+// Add error handlers
+almanachLayer.getSource().on('error', function(error) {
+  console.error('Error loading almanach data:', error);
+  // Disable the layer on error
+  almanachLayer.setVisible(false);
+});
+
+cadastreWmsSource.on('error', function(error) {
+  console.error('Error loading WMS data:', error);
+  // Disable the layer on error
+  cadastreWmsLayer.setVisible(false);
+});
 
 // Create the view with the initial center and zoom level
 const view = new View({
